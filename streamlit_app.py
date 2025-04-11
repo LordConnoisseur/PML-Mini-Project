@@ -20,7 +20,7 @@ st.set_page_config(
 # Load the model from Hugging Face
 @st.cache_resource
 def load_model():
-    model_url = "https://huggingface.co/Lord-Connoisseur/Churn_Prediction/raw/main/best_churn_model_updated.pkl"
+    model_url = "https://huggingface.co/Lord-Connoisseur/Churn_Prediction/raw/main/best_churn_model_safe.pkl"
     
     # Configure retry strategy
     retry_strategy = Retry(
