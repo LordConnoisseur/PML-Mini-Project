@@ -4,6 +4,8 @@ import joblib
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import requests
+import io
 
 # Set page config
 st.set_page_config(
@@ -12,10 +14,18 @@ st.set_page_config(
     layout="wide"
 )
 
-# Load the model
+# Load the model from Hugging Face
 @st.cache_resource
 def load_model():
-    return joblib.load("best_churn_model.pkl")
+    model_url = "https://huggingface.co/Lord-Connoisseur/Churn_Prediction/raw/main/best_churn_model.pkl"
+    try:
+        response = requests.get(model_url)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        model = joblib.load(io.BytesIO(response.content))
+        return model
+    except Exception as e:
+        st.error(f"Error loading model: {str(e)}")
+        return None
 
 model = load_model()
 
@@ -64,6 +74,10 @@ def main():
     elif page == "Prediction":
         st.header("Churn Prediction")
         
+        if model is None:
+            st.error("Model failed to load. Please try refreshing the page or contact support.")
+            return
+            
         col1, col2 = st.columns(2)
         
         with col1:
@@ -92,6 +106,12 @@ def main():
                 }
 
                 input_df = pd.DataFrame([input_data])
+                
+                # Ensure the model is loaded before making predictions
+                if model is None:
+                    st.error("Model is not available. Please try again later.")
+                    return
+                    
                 prediction = model.predict(input_df)[0]
                 proba = model.predict_proba(input_df)[0][1]
 
@@ -112,7 +132,7 @@ def main():
                 st.info(explanation)
 
             except Exception as e:
-                st.error(f"Error: {str(e)}")
+                st.error(f"Error making prediction: {str(e)}")
 
     elif page == "Customer Analysis":
         st.header("Customer Analysis")
