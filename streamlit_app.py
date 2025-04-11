@@ -6,6 +6,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 import requests
 import io
+import time
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 # Set page config
 st.set_page_config(
@@ -18,13 +21,40 @@ st.set_page_config(
 @st.cache_resource
 def load_model():
     model_url = "https://huggingface.co/Lord-Connoisseur/Churn_Prediction/raw/main/best_churn_model.pkl"
+    
+    # Configure retry strategy
+    retry_strategy = Retry(
+        total=3,  # number of retries
+        backoff_factor=1,  # wait 1, 2, 4 seconds between retries
+        status_forcelist=[429, 500, 502, 503, 504]  # HTTP status codes to retry on
+    )
+    
+    # Create a session with retry strategy
+    session = requests.Session()
+    session.mount("https://", HTTPAdapter(max_retries=retry_strategy))
+    
     try:
-        response = requests.get(model_url)
+        # Add a timeout to the request
+        response = session.get(model_url, timeout=30)
         response.raise_for_status()  # Raise an exception for bad status codes
-        model = joblib.load(io.BytesIO(response.content))
-        return model
+        
+        # Verify the content is not empty
+        if not response.content:
+            raise ValueError("Empty response received from Hugging Face")
+            
+        # Try to load the model
+        try:
+            model = joblib.load(io.BytesIO(response.content))
+            return model
+        except Exception as e:
+            st.error(f"Error loading model from bytes: {str(e)}")
+            return None
+            
+    except requests.exceptions.RequestException as e:
+        st.error(f"Error downloading model: {str(e)}")
+        return None
     except Exception as e:
-        st.error(f"Error loading model: {str(e)}")
+        st.error(f"Unexpected error: {str(e)}")
         return None
 
 model = load_model()
