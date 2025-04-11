@@ -20,7 +20,7 @@ st.set_page_config(
 # Load the model from Hugging Face
 @st.cache_resource
 def load_model():
-    model_url = "https://huggingface.co/Lord-Connoisseur/Churn_Prediction/raw/main/best_churn_model.pkl"
+    model_url = "https://huggingface.co/Lord-Connoisseur/Churn_Prediction/raw/main/best_churn_model_updated.pkl"
     
     # Configure retry strategy
     retry_strategy = Retry(
@@ -45,8 +45,10 @@ def load_model():
         # Try to load the model
         try:
             model = joblib.load(io.BytesIO(response.content))
+            print("Model Loaded!")
             return model
         except Exception as e:
+            print("Model Not Loaded!")
             st.error(f"Error loading model from bytes: {str(e)}")
             return None
             
